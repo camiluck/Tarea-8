@@ -1,3 +1,9 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
+ */
+package tarea.pkg8;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -6,8 +12,10 @@ import java.util.Scanner;
  * Sistema de Gestión para Teatro Moro
  * Implementa estructuras de datos optimizadas para la gestión de ventas, asientos, clientes,
  * descuentos y reservas de un teatro.
+ * 
+ * @author cami
  */
-public class TeatroMoro {
+public class Tarea8 {
     // Arreglos para almacenamiento de datos (estructuras de tamaño fijo)
     private int[] asientos; // Estado de los asientos (0: libre, 1: ocupado, 2: reservado)
     private Cliente[] clientes; // Información de los clientes
@@ -34,7 +42,7 @@ public class TeatroMoro {
      * @param maxClientes Capacidad máxima de clientes a registrar
      * @param maxVentas Capacidad máxima de ventas a registrar
      */
-    public TeatroMoro(int cantidadAsientos, int maxClientes, int maxVentas) {
+    public Tarea8(int cantidadAsientos, int maxClientes, int maxVentas) {
         // Inicialización de arreglos con tamaño fijo
         this.asientos = new int[cantidadAsientos];
         this.clientes = new Cliente[maxClientes];
@@ -512,15 +520,16 @@ public class TeatroMoro {
     }
     
     /**
-     * Método principal para demostración del sistema
+     * @param args the command line arguments
      */
     public static void main(String[] args) {
+        // TODO code application logic here
         Scanner scanner = new Scanner(System.in);
         
         System.out.println("=== SISTEMA DE GESTIÓN TEATRO MORO ===\n");
         
         // Inicializar el sistema con 100 asientos, 50 clientes máximo y 200 ventas máximo
-        TeatroMoro teatro = new TeatroMoro(100, 50, 200);
+        Tarea8 teatro = new Tarea8(100, 50, 200);
         
         // Registrar algunos clientes de ejemplo
         teatro.registrarCliente("Juan Pérez", "12345678-9", "Regular");
