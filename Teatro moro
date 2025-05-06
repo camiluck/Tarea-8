@@ -1,0 +1,613 @@
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
+
+/**
+ * Sistema de Gestión para Teatro Moro
+ * Implementa estructuras de datos optimizadas para la gestión de ventas, asientos, clientes,
+ * descuentos y reservas de un teatro.
+ */
+public class TeatroMoro {
+    // Arreglos para almacenamiento de datos (estructuras de tamaño fijo)
+    private int[] asientos; // Estado de los asientos (0: libre, 1: ocupado, 2: reservado)
+    private Cliente[] clientes; // Información de los clientes
+    private Venta[] ventas; // Registro de ventas
+    
+    // Listas para manejo de datos dinámicos
+    private List<Descuento> descuentos; // Lista de descuentos y promociones
+    private List<Reserva> reservas; // Lista de reservas
+    
+    // Contadores para gestionar los índices
+    private int numClientes;
+    private int numVentas;
+    
+    // Constantes para descuentos
+    private static final double DESCUENTO_ESTUDIANTE = 0.10;
+    private static final double DESCUENTO_TERCERA_EDAD = 0.15;
+    
+    // Precio base de la entrada
+    private static final int PRECIO_BASE = 10000;
+
+    /**
+     * Constructor del sistema de gestión del Teatro Moro
+     * @param cantidadAsientos Número total de asientos en el teatro
+     * @param maxClientes Capacidad máxima de clientes a registrar
+     * @param maxVentas Capacidad máxima de ventas a registrar
+     */
+    public TeatroMoro(int cantidadAsientos, int maxClientes, int maxVentas) {
+        // Inicialización de arreglos con tamaño fijo
+        this.asientos = new int[cantidadAsientos];
+        this.clientes = new Cliente[maxClientes];
+        this.ventas = new Venta[maxVentas];
+        
+        // Inicialización de listas dinámicas
+        this.descuentos = new ArrayList<>();
+        this.reservas = new ArrayList<>();
+        
+        // Inicialización de contadores
+        this.numClientes = 0;
+        this.numVentas = 0;
+        
+        // Configuración de descuentos predeterminados
+        this.descuentos.add(new Descuento("Estudiante", DESCUENTO_ESTUDIANTE));
+        this.descuentos.add(new Descuento("Tercera Edad", DESCUENTO_TERCERA_EDAD));
+        
+        System.out.println("Sistema de Teatro Moro inicializado con " + cantidadAsientos + " asientos.");
+    }
+    
+    /**
+     * Registra un nuevo cliente en el sistema
+     * @param nombre Nombre del cliente
+     * @param rut RUT o identificación del cliente
+     * @param tipoCliente Tipo de cliente para aplicar descuentos específicos
+     * @return ID asignado al cliente o -1 si no se pudo registrar
+     */
+    public int registrarCliente(String nombre, String rut, String tipoCliente) {
+        // Validación de entrada
+        if (nombre == null || nombre.trim().isEmpty() || rut == null || rut.trim().isEmpty()) {
+            System.out.println("Error: Nombre y RUT son obligatorios.");
+            return -1;
+        }
+        
+        // Verificar si hay espacio disponible en el arreglo de clientes
+        if (numClientes >= clientes.length) {
+            System.out.println("Error: Capacidad máxima de clientes alcanzada.");
+            return -1;
+        }
+        
+        // Verificar si el cliente ya está registrado
+        for (int i = 0; i < numClientes; i++) {
+            if (clientes[i].getRut().equals(rut)) {
+                System.out.println("Cliente ya registrado con ID: " + i);
+                return i;
+            }
+        }
+        
+        // Registrar nuevo cliente
+        int id = numClientes;
+        clientes[id] = new Cliente(id, nombre, rut, tipoCliente);
+        numClientes++;
+        
+        System.out.println("Cliente registrado con éxito. ID: " + id);
+        return id;
+    }
+    
+    /**
+     * Vende una entrada asignando un asiento específico a un cliente
+     * @param idCliente ID del cliente que compra la entrada
+     * @param numAsiento Número de asiento a vender
+     * @return true si la venta se realizó con éxito, false en caso contrario
+     */
+    public boolean venderEntrada(int idCliente, int numAsiento) {
+        // Validar índices
+        if (idCliente < 0 || idCliente >= numClientes) {
+            System.out.println("Error: ID de cliente inválido.");
+            return false;
+        }
+        
+        if (numAsiento < 0 || numAsiento >= asientos.length) {
+            System.out.println("Error: Número de asiento inválido.");
+            return false;
+        }
+        
+        // Verificar disponibilidad del asiento
+        if (asientos[numAsiento] != 0) {
+            System.out.println("Error: El asiento " + numAsiento + " no está disponible.");
+            return false;
+        }
+        
+        // Verificar capacidad de ventas
+        if (numVentas >= ventas.length) {
+            System.out.println("Error: Capacidad máxima de ventas alcanzada.");
+            return false;
+        }
+        
+        // Obtener cliente
+        Cliente cliente = clientes[idCliente];
+        
+        // Calcular precio con descuento
+        double precioFinal = calcularPrecioConDescuento(cliente.getTipoCliente(), PRECIO_BASE);
+        
+        // Registrar venta
+        int idVenta = numVentas;
+        ventas[idVenta] = new Venta(idVenta, idCliente, numAsiento, precioFinal);
+        numVentas++;
+        
+        // Actualizar estado del asiento
+        asientos[numAsiento] = 1; // Marcar como ocupado
+        
+        System.out.println("Venta realizada con éxito. ID Venta: " + idVenta + 
+                           ", Asiento: " + numAsiento + 
+                           ", Precio: $" + precioFinal);
+        return true;
+    }
+    
+    /**
+     * Calcula el precio final de una entrada aplicando descuentos si corresponde
+     * @param tipoCliente Tipo de cliente para determinar descuentos aplicables
+     * @param precioBase Precio base de la entrada
+     * @return Precio final después de aplicar descuentos
+     */
+    private double calcularPrecioConDescuento(String tipoCliente, double precioBase) {
+        double precioFinal = precioBase;
+        
+        // Buscar descuento aplicable según tipo de cliente
+        for (Descuento descuento : descuentos) {
+            if (descuento.getNombre().equalsIgnoreCase(tipoCliente)) {
+                precioFinal = precioBase * (1 - descuento.getPorcentaje());
+                System.out.println("Aplicado descuento de " + 
+                                  (descuento.getPorcentaje() * 100) + 
+                                  "% por ser " + tipoCliente);
+                break;
+            }
+        }
+        
+        return precioFinal;
+    }
+    
+    /**
+     * Reserva un asiento para un cliente específico
+     * @param idCliente ID del cliente que realiza la reserva
+     * @param numAsiento Número de asiento a reservar
+     * @return true si la reserva se realizó con éxito, false en caso contrario
+     */
+    public boolean reservarAsiento(int idCliente, int numAsiento) {
+        // Validar índices
+        if (idCliente < 0 || idCliente >= numClientes) {
+            System.out.println("Error: ID de cliente inválido.");
+            return false;
+        }
+        
+        if (numAsiento < 0 || numAsiento >= asientos.length) {
+            System.out.println("Error: Número de asiento inválido.");
+            return false;
+        }
+        
+        // Verificar disponibilidad del asiento
+        if (asientos[numAsiento] != 0) {
+            System.out.println("Error: El asiento " + numAsiento + " no está disponible.");
+            return false;
+        }
+        
+        // Crear reserva
+        Reserva reserva = new Reserva(reservas.size(), idCliente, numAsiento);
+        reservas.add(reserva);
+        
+        // Actualizar estado del asiento
+        asientos[numAsiento] = 2; // Marcar como reservado
+        
+        System.out.println("Reserva realizada con éxito. ID Reserva: " + (reservas.size() - 1) + 
+                           ", Cliente: " + clientes[idCliente].getNombre() +
+                           ", Asiento: " + numAsiento);
+        return true;
+    }
+    
+    /**
+     * Cancela una reserva y libera el asiento
+     * @param idReserva ID de la reserva a cancelar
+     * @return true si la cancelación se realizó con éxito, false en caso contrario
+     */
+    public boolean cancelarReserva(int idReserva) {
+        // Validar índice
+        if (idReserva < 0 || idReserva >= reservas.size()) {
+            System.out.println("Error: ID de reserva inválido.");
+            return false;
+        }
+        
+        Reserva reserva = reservas.get(idReserva);
+        
+        // Validar que la reserva no haya sido cancelada previamente
+        if (reserva == null) {
+            System.out.println("Error: La reserva ya ha sido cancelada.");
+            return false;
+        }
+        
+        // Verificar que el asiento esté reservado
+        if (asientos[reserva.getNumAsiento()] != 2) {
+            System.out.println("Error: El asiento no está reservado.");
+            return false;
+        }
+        
+        // Liberar asiento
+        asientos[reserva.getNumAsiento()] = 0;
+        
+        // Marcar reserva como cancelada (eliminamos la referencia)
+        reservas.set(idReserva, null);
+        
+        System.out.println("Reserva cancelada con éxito. Asiento " + reserva.getNumAsiento() + " liberado.");
+        return true;
+    }
+    
+    /**
+     * Actualiza la información de un cliente existente
+     * @param idCliente ID del cliente a actualizar
+     * @param nombre Nuevo nombre del cliente
+     * @param rut Nuevo RUT del cliente
+     * @param tipoCliente Nuevo tipo de cliente
+     * @return true si la actualización se realizó con éxito, false en caso contrario
+     */
+    public boolean actualizarCliente(int idCliente, String nombre, String rut, String tipoCliente) {
+        // Validar índice
+        if (idCliente < 0 || idCliente >= numClientes) {
+            System.out.println("Error: ID de cliente inválido.");
+            return false;
+        }
+        
+        // Validar datos
+        if (nombre == null || nombre.trim().isEmpty() || rut == null || rut.trim().isEmpty()) {
+            System.out.println("Error: Nombre y RUT son obligatorios.");
+            return false;
+        }
+        
+        // Actualizar cliente
+        clientes[idCliente].setNombre(nombre);
+        clientes[idCliente].setRut(rut);
+        clientes[idCliente].setTipoCliente(tipoCliente);
+        
+        System.out.println("Cliente actualizado con éxito. ID: " + idCliente);
+        return true;
+    }
+    
+    /**
+     * Añade un nuevo tipo de descuento al sistema
+     * @param nombre Nombre del tipo de descuento
+     * @param porcentaje Porcentaje de descuento a aplicar (0 a 1)
+     * @return true si se añadió correctamente, false en caso contrario
+     */
+    public boolean agregarDescuento(String nombre, double porcentaje) {
+        // Validar datos
+        if (nombre == null || nombre.trim().isEmpty()) {
+            System.out.println("Error: El nombre del descuento es obligatorio.");
+            return false;
+        }
+        
+        if (porcentaje < 0 || porcentaje > 1) {
+            System.out.println("Error: El porcentaje debe estar entre 0 y 1.");
+            return false;
+        }
+        
+        // Verificar si ya existe un descuento con ese nombre
+        for (Descuento desc : descuentos) {
+            if (desc.getNombre().equalsIgnoreCase(nombre)) {
+                System.out.println("Ya existe un descuento con ese nombre. Actualizado a " + (porcentaje * 100) + "%");
+                desc.setPorcentaje(porcentaje);
+                return true;
+            }
+        }
+        
+        // Agregar nuevo descuento
+        descuentos.add(new Descuento(nombre, porcentaje));
+        System.out.println("Descuento añadido: " + nombre + " (" + (porcentaje * 100) + "%)");
+        return true;
+    }
+    
+    /**
+     * Muestra el estado actual de los asientos del teatro
+     */
+    public void mostrarEstadoAsientos() {
+        System.out.println("\n-- Estado de Asientos --");
+        System.out.println("Libre (0) | Ocupado (1) | Reservado (2)");
+        
+        for (int i = 0; i < asientos.length; i++) {
+            System.out.print("Asiento " + i + ": " + asientos[i]);
+            
+            if ((i + 1) % 5 == 0 || i == asientos.length - 1) {
+                System.out.println();
+            } else {
+                System.out.print(" | ");
+            }
+        }
+        System.out.println();
+    }
+    
+    /**
+     * Muestra la información de todas las ventas realizadas
+     */
+    public void mostrarVentas() {
+        System.out.println("\n-- Ventas Realizadas --");
+        
+        int ventasValidas = 0;
+        double totalVentas = 0;
+        
+        for (int i = 0; i < numVentas; i++) {
+            Venta venta = ventas[i];
+            Cliente cliente = clientes[venta.getIdCliente()];
+            
+            System.out.println("ID: " + venta.getId() + 
+                              " | Cliente: " + cliente.getNombre() + 
+                              " | Asiento: " + venta.getNumAsiento() + 
+                              " | Precio: $" + venta.getPrecio());
+            
+            ventasValidas++;
+            totalVentas += venta.getPrecio();
+        }
+        
+        System.out.println("\nTotal de ventas: " + ventasValidas);
+        System.out.println("Ingreso total: $" + totalVentas);
+    }
+    
+    /**
+     * Muestra información de todos los clientes registrados
+     */
+    public void mostrarClientes() {
+        System.out.println("\n-- Clientes Registrados --");
+        
+        for (int i = 0; i < numClientes; i++) {
+            Cliente cliente = clientes[i];
+            System.out.println("ID: " + cliente.getId() + 
+                              " | Nombre: " + cliente.getNombre() + 
+                              " | RUT: " + cliente.getRut() + 
+                              " | Tipo: " + cliente.getTipoCliente());
+        }
+        
+        System.out.println("\nTotal de clientes: " + numClientes);
+    }
+    
+    /**
+     * Muestra todos los descuentos disponibles en el sistema
+     */
+    public void mostrarDescuentos() {
+        System.out.println("\n-- Descuentos Disponibles --");
+        
+        for (int i = 0; i < descuentos.size(); i++) {
+            Descuento desc = descuentos.get(i);
+            System.out.println(desc.getNombre() + ": " + (desc.getPorcentaje() * 100) + "%");
+        }
+    }
+    
+    /**
+     * Método principal para pruebas de rendimiento y optimización
+     */
+    public void ejecutarPruebasRendimiento() {
+        long startTime, endTime;
+        
+        // Prueba 1: Añadir 100 clientes
+        System.out.println("\n-- Prueba de rendimiento: Añadir 100 clientes --");
+        startTime = System.currentTimeMillis();
+        
+        for (int i = 0; i < 100 && i < clientes.length; i++) {
+            registrarCliente("Cliente Test " + i, "RUT" + i, i % 2 == 0 ? "Estudiante" : "Regular");
+        }
+        
+        endTime = System.currentTimeMillis();
+        System.out.println("Tiempo para añadir 100 clientes: " + (endTime - startTime) + "ms");
+        
+        // Prueba 2: Vender 50 entradas
+        System.out.println("\n-- Prueba de rendimiento: Vender 50 entradas --");
+        startTime = System.currentTimeMillis();
+        
+        for (int i = 0; i < 50 && i < asientos.length; i++) {
+            venderEntrada(i % numClientes, i);
+        }
+        
+        endTime = System.currentTimeMillis();
+        System.out.println("Tiempo para vender 50 entradas: " + (endTime - startTime) + "ms");
+        
+        // Prueba 3: Reservar 30 asientos
+        System.out.println("\n-- Prueba de rendimiento: Reservar 30 asientos --");
+        startTime = System.currentTimeMillis();
+        
+        for (int i = 50; i < 80 && i < asientos.length; i++) {
+            reservarAsiento(i % numClientes, i);
+        }
+        
+        endTime = System.currentTimeMillis();
+        System.out.println("Tiempo para reservar 30 asientos: " + (endTime - startTime) + "ms");
+    }
+    
+    /**
+     * Clase interna para gestionar información de Clientes
+     */
+    private class Cliente {
+        private int id;
+        private String nombre;
+        private String rut;
+        private String tipoCliente; // Regular, Estudiante, Tercera Edad, etc.
+        
+        public Cliente(int id, String nombre, String rut, String tipoCliente) {
+            this.id = id;
+            this.nombre = nombre;
+            this.rut = rut;
+            this.tipoCliente = tipoCliente;
+        }
+        
+        // Getters y setters
+        public int getId() { return id; }
+        
+        public String getNombre() { return nombre; }
+        public void setNombre(String nombre) { this.nombre = nombre; }
+        
+        public String getRut() { return rut; }
+        public void setRut(String rut) { this.rut = rut; }
+        
+        public String getTipoCliente() { return tipoCliente; }
+        public void setTipoCliente(String tipoCliente) { this.tipoCliente = tipoCliente; }
+    }
+    
+    /**
+     * Clase interna para gestionar información de Ventas
+     */
+    private class Venta {
+        private int id;
+        private int idCliente;
+        private int numAsiento;
+        private double precio;
+        
+        public Venta(int id, int idCliente, int numAsiento, double precio) {
+            this.id = id;
+            this.idCliente = idCliente;
+            this.numAsiento = numAsiento;
+            this.precio = precio;
+        }
+        
+        // Getters y setters
+        public int getId() { return id; }
+        
+        public int getIdCliente() { return idCliente; }
+        
+        public int getNumAsiento() { return numAsiento; }
+        
+        public double getPrecio() { return precio; }
+    }
+    
+    /**
+     * Clase interna para gestionar información de Descuentos
+     */
+    private class Descuento {
+        private String nombre;
+        private double porcentaje;
+        
+        public Descuento(String nombre, double porcentaje) {
+            this.nombre = nombre;
+            this.porcentaje = porcentaje;
+        }
+        
+        // Getters y setters
+        public String getNombre() { return nombre; }
+        
+        public double getPorcentaje() { return porcentaje; }
+        public void setPorcentaje(double porcentaje) { this.porcentaje = porcentaje; }
+    }
+    
+    /**
+     * Clase interna para gestionar información de Reservas
+     */
+    private class Reserva {
+        private int id;
+        private int idCliente;
+        private int numAsiento;
+        
+        public Reserva(int id, int idCliente, int numAsiento) {
+            this.id = id;
+            this.idCliente = idCliente;
+            this.numAsiento = numAsiento;
+        }
+        
+        // Getters
+        public int getId() { return id; }
+        
+        public int getIdCliente() { return idCliente; }
+        
+        public int getNumAsiento() { return numAsiento; }
+    }
+    
+    /**
+     * Método principal para demostración del sistema
+     */
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        
+        System.out.println("=== SISTEMA DE GESTIÓN TEATRO MORO ===\n");
+        
+        // Inicializar el sistema con 100 asientos, 50 clientes máximo y 200 ventas máximo
+        TeatroMoro teatro = new TeatroMoro(100, 50, 200);
+        
+        // Registrar algunos clientes de ejemplo
+        teatro.registrarCliente("Juan Pérez", "12345678-9", "Regular");
+        teatro.registrarCliente("María González", "98765432-1", "Estudiante");
+        teatro.registrarCliente("Carlos Rodríguez", "45678912-3", "Tercera Edad");
+        
+        // Menú interactivo
+        int opcion;
+        do {
+            System.out.println("\n--- MENÚ PRINCIPAL ---");
+            System.out.println("1. Registrar cliente");
+            System.out.println("2. Vender entrada");
+            System.out.println("3. Reservar asiento");
+            System.out.println("4. Cancelar reserva");
+            System.out.println("5. Mostrar estado de asientos");
+            System.out.println("6. Mostrar ventas");
+            System.out.println("7. Mostrar clientes");
+            System.out.println("8. Mostrar descuentos");
+            System.out.println("9. Ejecutar pruebas de rendimiento");
+            System.out.println("0. Salir");
+            System.out.print("\nSeleccione una opción: ");
+            
+            opcion = scanner.nextInt();
+            scanner.nextLine(); // Limpiar buffer
+            
+            switch (opcion) {
+                case 1:
+                    System.out.print("Nombre: ");
+                    String nombre = scanner.nextLine();
+                    System.out.print("RUT: ");
+                    String rut = scanner.nextLine();
+                    System.out.print("Tipo de cliente (Regular, Estudiante, Tercera Edad): ");
+                    String tipo = scanner.nextLine();
+                    teatro.registrarCliente(nombre, rut, tipo);
+                    break;
+                    
+                case 2:
+                    System.out.print("ID del cliente: ");
+                    int idCliente = scanner.nextInt();
+                    System.out.print("Número de asiento: ");
+                    int numAsiento = scanner.nextInt();
+                    teatro.venderEntrada(idCliente, numAsiento);
+                    break;
+                    
+                case 3:
+                    System.out.print("ID del cliente: ");
+                    idCliente = scanner.nextInt();
+                    System.out.print("Número de asiento: ");
+                    numAsiento = scanner.nextInt();
+                    teatro.reservarAsiento(idCliente, numAsiento);
+                    break;
+                    
+                case 4:
+                    System.out.print("ID de la reserva: ");
+                    int idReserva = scanner.nextInt();
+                    teatro.cancelarReserva(idReserva);
+                    break;
+                    
+                case 5:
+                    teatro.mostrarEstadoAsientos();
+                    break;
+                    
+                case 6:
+                    teatro.mostrarVentas();
+                    break;
+                    
+                case 7:
+                    teatro.mostrarClientes();
+                    break;
+                    
+                case 8:
+                    teatro.mostrarDescuentos();
+                    break;
+                    
+                case 9:
+                    teatro.ejecutarPruebasRendimiento();
+                    break;
+                    
+                case 0:
+                    System.out.println("Gracias por usar el Sistema de Gestión Teatro Moro.");
+                    break;
+                    
+                default:
+                    System.out.println("Opción inválida. Intente nuevamente.");
+            }
+        } while (opcion != 0);
+        
+        scanner.close();
+    }
+}
